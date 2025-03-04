@@ -155,18 +155,26 @@ def generate_category_insight(category_data: pd.DataFrame,
 
 def render_insight_box(insight_text: str) -> None:
     """
-    Renders an insight text box with styling.
+    Renders insight text without any styling.
     
     Args:
         insight_text: The insight text to display
     """
-    st.markdown(f"""
-    <div style="background-color: #f8f9fa; 
-                border-left: 4px solid #4285F4; 
-                padding: 1rem; 
-                margin-top: -1rem;
-                margin-bottom: 1rem;
-                border-radius: 0.25rem;">
-        {insight_text}
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(insight_text)
+
+def render_metric_card(title, value):
+    """Render a metric using plain text."""
+    st.markdown(f"**{title}**")
+    st.markdown(value)
+
+def render_custom_insight_box(insight_text: str, title: str = "Insight", icon: str = "💡") -> None:
+    """
+    Renders insight text with title but without styling.
+    
+    Args:
+        insight_text: The insight text to display
+        title: The title of the insight
+        icon: The icon to display next to the title
+    """
+    st.markdown(f"**{icon} {title}**")
+    st.markdown(insight_text)
