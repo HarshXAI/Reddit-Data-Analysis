@@ -1,115 +1,129 @@
 # Reddit Data Analysis Dashboard
 
-This project provides an interactive dashboard for analyzing Reddit data, including time series analysis, topic modeling, AI-generated summaries, and credibility assessment.
+A comprehensive Streamlit dashboard for analyzing Reddit data with advanced analytics, AI-powered insights, and interactive visualizations.
 
-![Dashboard Screenshot](dashboard_screenshot.png)
+## 🚀 Features
 
-## Features
+- **📊 Interactive Data Analysis**
+  - Real-time data processing and visualization
+  - Time series analysis with customizable aggregation
+  - Advanced topic modeling with BERTopic
+  - Network analysis of author-subreddit relationships
+  - Credibility scoring and misinformation detection
 
-- **Data Ingestion**: Load and process Reddit JSONL data
-- **Statistical Analysis**: Post distribution, scoring patterns, temporal analysis
-- **Text Analysis**: Word clouds, keyword frequency, search functionality
-- **Topic Modeling**: Discover main discussion topics using LDA or BERTopic
-- **AI Summaries**: Get natural language explanations of data insights using Google's Gemini API
-- **Credibility Analysis**: Assess posts for potential misinformation
-- **Network Analysis**: Visualize relationships between authors and subreddits
+- **🤖 AI-Powered Insights**
+  - Google Gemini API integration for intelligent summaries
+  - Automated trend detection and analysis
+  - Topic modeling with advanced NLP
+  - Credibility assessment with machine learning
 
-## Project Structure
+- **📈 Visualization Components**
+  - Interactive time series plots
+  - Dynamic network graphs
+  - Word clouds and topic visualization
+  - Credibility score distribution
 
+## 🛠️ Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/reddit-analysis-dashboard.git
+cd reddit-analysis-dashboard
 ```
-SimPPL project/
-├── app.py                  # Original Streamlit application
-├── app_enhanced.py         # Enhanced UI version with advanced features
-├── modules/
-│   ├── data_ingestion.py   # Data loading and preprocessing
-│   ├── stats_analysis.py   # Statistical analysis functions
-│   ├── topic_modeling.py   # Basic topic modeling implementation
-│   ├── summary_agent.py    # Basic summary generation
-│   ├── advanced_analysis.py # Advanced ML analysis (topics, trends, credibility)
-│   └── ai_summary.py       # AI-powered summaries with Gemini API
-├── requirements.txt        # Project dependencies
-└── README.md               # Documentation
+
+2. Create and activate a virtual environment:
+```bash
+python -m venv simppl
+source simppl/bin/activate  # On Windows: simppl\Scripts\activate
 ```
 
-## Setup and Installation
-
-1. Clone this repository
-2. Install dependencies:
+3. Install required packages:
 ```bash
 pip install -r requirements.txt
 ```
-3. Set up your Google Gemini API key:
-   - Get a free API key from [Google AI Studio](https://ai.google.dev/)
-   - Create a `.env` file in the project root with: `GEMINI_API_KEY=your_key_here`
 
-4. Run the Streamlit app:
+4. Set up environment variables:
 ```bash
-# Run the original app
+cp .env.example .env
+# Edit .env and add your Google Gemini API key
+```
+
+## 🚀 Usage
+
+1. Start the Streamlit app:
+```bash
 streamlit run app.py
-
-# Or run the enhanced version with advanced features
-streamlit run app_enhanced.py
 ```
 
-## Data Format
+2. Upload your Reddit data in JSONL format or use the demo data
+3. Navigate through different analysis tabs
+4. Generate AI-powered insights using the Gemini API
 
-The application expects Reddit data in JSONL format (JSON Lines), with each line containing a separate JSON record for a Reddit post:
+## 📁 Project Structure
 
 ```
-{"kind": "t3", "data": {"subreddit": "Subreddit name", "title": "Post title", "selftext": "Post content", "author": "Username", "score": 123, "created_utc": 1739858460.0, ...}}
-{"kind": "t3", "data": {"subreddit": "Another subreddit", "title": "Another post", "selftext": "More content", "author": "Another user", "score": 456, "created_utc": 1739858470.0, ...}}
+/SimPPL project/
+├── app.py              # Main Streamlit application
+├── config.py           # Configuration settings
+├── data/              # Data directory for demo files
+├── modules/           # Core functionality modules
+│   ├── __init__.py
+│   ├── data_ingestion.py
+│   ├── stats_analysis.py
+│   ├── topic_modeling.py
+│   ├── advanced_analysis.py
+│   ├── ai_summary.py
+│   └── summary_agent.py
+├── requirements.txt    # Project dependencies
+└── .env               # Environment variables (create from .env.example)
 ```
 
-Each JSON object should have a `kind` field with value "t3" and a `data` field containing the post data.
+## 🔧 Configuration
 
-## Key Features Comparison
+- Set `GEMINI_API_KEY` in `.env` for AI features
+- Adjust analysis parameters in `config.py`
+- Customize visualization settings in the UI
 
-| Feature                     | app.py (Original) | app_enhanced.py (Enhanced) |
-|----------------------------|-------------------|----------------------------|
-| Data Loading               | ✅               | ✅                         |
-| Basic Statistics           | ✅               | ✅                         |
-| Time Series Analysis       | ✅               | ✅                         |
-| Word Clouds                | ✅               | ✅                         |
-| Basic Topic Modeling       | ✅               | ✅                         |
-| Advanced Topic Modeling    | ❌               | ✅ (BERTopic)              |
-| Trend Detection            | ❌               | ✅                         |
-| Credibility Analysis       | ❌               | ✅                         |
-| Network Graph Analysis     | ❌               | ✅                         |
-| AI-Generated Summaries     | Basic            | ✅ (Gemini API)            |
-| Enhanced UI/UX             | ❌               | ✅                         |
-| Light/Dark Mode            | ❌               | ✅                         |
+## 🤝 Contributing
 
-## Deployment
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-### Deploying to Streamlit Cloud
-
-1. Push this code to a GitHub repository
-2. Go to [Streamlit Cloud](https://streamlit.io/cloud)
-3. Create a new app and point it to your repository
-4. Select either `app.py` or `app_enhanced.py` as the main file
-5. Add your Gemini API key as a secret with name `GEMINI_API_KEY`
-6. Deploy!
-
-### Deploying to Hugging Face Spaces
-
-1. Create a new Space on [Hugging Face Spaces](https://huggingface.co/spaces)
-2. Select "Streamlit" as the SDK
-3. Upload this project files
-4. Set the environment variable `GEMINI_API_KEY`
-5. The app will automatically deploy
-
-## Usage
-
-1. Open the app in your browser
-2. Upload your Reddit JSONL data using the file uploader in the sidebar
-3. Explore different analyses using the tabs or navigation menu
-4. Use filters to narrow down analysis to specific subreddits or time periods
-5. View AI-generated summaries for key insights
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Google Gemini API for AI capabilities
+- Streamlit for the web interface
+- BERTopic for advanced topic modeling
+- NetworkX for graph analysis
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Gemini API Connection**
+   - Verify your API key in `.env`
+   - Check for model availability
+   - Run diagnostics from the AI Insights tab
+
+2. **Data Loading**
+   - Ensure JSONL format is correct
+   - Check file permissions
+   - Use demo data to verify functionality
+
+3. **Topic Modeling**
+   - BERTopic requires sufficient RAM
+   - Falls back to simpler LDA if needed
+   - Adjust topic numbers for better results
+
+### Performance Tips
+
+- Use appropriate time aggregation for large datasets
+- Enable caching for repeated analyses
+- Adjust chunk size for large file processing
