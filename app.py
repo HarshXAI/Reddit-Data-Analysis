@@ -168,6 +168,9 @@ def main():
             stats_agent = StatsAgent(df)
             advanced_agent = AdvancedAnalysisAgent(df)
             
+            # Initialize the Gemini summary agent early so it can be used in all tabs
+            gemini_agent = GeminiSummaryAgent()
+            
             # Show basic info about the dataset
             st.sidebar.success(f"Loaded {len(df):,} Reddit posts")
             
@@ -196,6 +199,10 @@ def main():
                 # Top subreddits
                 st.subheader("Top Subreddits")
                 subreddit_counts = stats_agent.get_subreddit_distribution()
+                top_subreddit = subreddit_counts.iloc[0]['subreddit']
+                top_count = subreddit_counts.iloc[0]['count']
+                top_percent = (top_count / len(df)) * 100
+                
                 fig = px.bar(
                     subreddit_counts.head(10),
                     x="count",
@@ -211,8 +218,19 @@ def main():
                 )
                 st.plotly_chart(fig, use_container_width=True)
                 
+                # Add dynamic explanation for top subreddits
+                st.markdown(f"""
+                **Interpretation:** This graph shows the distribution of posts across the most active subreddits. 
+                **r/{top_subreddit}** is the dominant community with **{top_count:,} posts** ({top_percent:.1f}% of total). 
+                The distribution pattern suggests {'a diverse set of communities' if top_percent < 20 else 'concentration in a few key subreddits'}, which {'indicates broad discussion across multiple topics' if top_percent < 20 else 'shows focused interest in specific topics'}.
+                """)
+                
                 # Score distribution
                 st.subheader("Score Distribution")
+                avg_score = df['score'].mean()
+                median_score = df['score'].median()
+                max_score = df['score'].max()
+                
                 fig = px.histogram(
                     df,
                     x="score",
@@ -221,6 +239,14 @@ def main():
                     color_discrete_sequence=["#1e88e5"]
                 )
                 st.plotly_chart(fig, use_container_width=True)
+                
+                # Add dynamic explanation for score distribution
+                skew_description = "right-skewed (most posts have lower scores with a few highly upvoted outliers)" if avg_score < median_score else "relatively balanced"
+                st.markdown(f"""
+                **Interpretation:** This histogram displays the distribution of post scores, which is {skew_description}. 
+                The average score is **{avg_score:.1f}** with a maximum of **{max_score}**. 
+                {'This pattern is typical of social media platforms where a small percentage of content receives significant engagement.' if avg_score < median_score else 'This suggests more uniform engagement across posts than typically seen on social platforms.'}
+                """)
                 
                 # Network graph section (in overview tab)
                 st.subheader("Community Network Analysis")
@@ -317,6 +343,9 @@ def main():
                 if not time_data.empty:
                     max_date = time_data.loc[time_data['count'].idxmax(), 'date']
                     max_count = time_data['count'].max()
+                    min_date = time_data.loc[time_data['count'].idxmin(), 'date']
+                    min_count = time_data['count'].min()
+                    avg_count = time_data['count'].mean()
                     
                     st.metric(
                         "Peak Activity", 
@@ -341,11 +370,32 @@ def main():
                 )
                 st.plotly_chart(fig, use_container_width=True)
                 
+                # Add dynamic explanation for time series
+                # Determine if there's a trend
+                if len(time_data) > 5:
+                    first_half_avg = time_data['count'].iloc[:len(time_data)//2].mean()
+                    second_half_avg = time_data['count'].iloc[len(time_data)//2:].mean()
+                    change_percent = ((second_half_avg - first_half_avg) / first_half_avg) * 100
+                    trend_text = f"increasing (by {change_percent:.1f}%)" if change_percent > 5 else "decreasing (by {abs(change_percent):.1f}%)" if change_percent < -5 else "stable"
+                else:
+                    trend_text = "not determinable due to limited data points"
+                
+                st.markdown(f"""
+                **Interpretation:** This time series shows the frequency of Reddit posts by {time_agg.lower()}. 
+                Peak activity occurred on **{max_date.strftime('%Y-%m-%d') if isinstance(max_date, pd.Timestamp) else max_date}** with **{max_count} posts**, while the lowest activity was **{min_count} posts** on **{min_date.strftime('%Y-%m-%d') if isinstance(min_date, pd.Timestamp) else min_date}**.
+                The overall trend appears to be {trend_text} over this time period, with an average of {avg_count:.1f} posts per {time_agg.lower()}.
+                """)
+                
                 # Posts by day of week and hour
                 col1, col2 = st.columns(2)
                 
                 with col1:
                     dow_data = stats_agent.get_posts_by_day_of_week()
+                    most_active_day = dow_data.loc[dow_data['count'].idxmax(), 'day_name']
+                    most_active_count = dow_data['count'].max()
+                    least_active_day = dow_data.loc[dow_data['count'].idxmin(), 'day_name']
+                    least_active_count = dow_data['count'].min()
+                    
                     fig = px.bar(
                         dow_data,
                         x="day_name",
@@ -356,9 +406,23 @@ def main():
                     )
                     fig.update_layout(coloraxis_showscale=False)
                     st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Add dynamic explanation for day of week
+                    weekday_weekend_pattern = "higher on weekdays than weekends" if dow_data.loc[dow_data['day_name'].isin(['Saturday', 'Sunday']), 'count'].mean() < dow_data.loc[~dow_data['day_name'].isin(['Saturday', 'Sunday']), 'count'].mean() else "higher on weekends than weekdays"
+                    
+                    st.markdown(f"""
+                    **Interpretation:** This chart shows posting activity by day of week. 
+                    **{most_active_day}** is the most active day with **{most_active_count} posts**, while **{least_active_day}** has the lowest activity (**{least_active_count} posts**).
+                    Activity is generally {weekday_weekend_pattern}, suggesting {'users are more engaged during the work week' if weekday_weekend_pattern == 'higher on weekdays than weekends' else 'users are more active during leisure time'}.
+                    """)
                 
                 with col2:
                     hour_data = stats_agent.get_posts_by_hour()
+                    peak_hour = hour_data.loc[hour_data['count'].idxmax(), 'hour']
+                    peak_hour_count = hour_data['count'].max()
+                    quiet_hour = hour_data.loc[hour_data['count'].idxmin(), 'hour']
+                    quiet_hour_count = hour_data['count'].min()
+                    
                     fig = px.line(
                         hour_data,
                         x="hour",
@@ -371,6 +435,22 @@ def main():
                         marker=dict(size=6)
                     )
                     st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Add dynamic explanation for hour of day
+                    # Convert to 12-hour format for readability
+                    peak_hour_12h = f"{peak_hour if peak_hour <= 12 else peak_hour - 12} {'AM' if peak_hour < 12 or peak_hour == 24 else 'PM'}"
+                    quiet_hour_12h = f"{quiet_hour if quiet_hour <= 12 else quiet_hour - 12} {'AM' if quiet_hour < 12 or quiet_hour == 24 else 'PM'}"
+                    
+                    # Determine if there are morning and evening peaks
+                    morning_peak = hour_data[(hour_data['hour'] >= 6) & (hour_data['hour'] < 12)]['count'].max()
+                    evening_peak = hour_data[(hour_data['hour'] >= 17) & (hour_data['hour'] < 23)]['count'].max()
+                    peak_pattern = "both morning and evening peaks" if morning_peak > 0.7 * evening_peak and evening_peak > 0.7 * morning_peak else "primarily evening activity" if evening_peak > morning_peak else "primarily morning activity"
+                    
+                    st.markdown(f"""
+                    **Interpretation:** This graph shows posting activity throughout the day. 
+                    Peak activity occurs around **{peak_hour_12h}** (**{peak_hour_count} posts**), with the least activity at **{quiet_hour_12h}** (**{quiet_hour_count} posts**).
+                    The pattern shows {peak_pattern}, suggesting {'users engage both before and after work hours' if peak_pattern == 'both morning and evening peaks' else 'users are most active during evening leisure hours' if peak_pattern == 'primarily evening activity' else 'users tend to post early in the day'}.
+                    """)
             
             with tab3:
                 st.header("Text Analysis")
@@ -383,9 +463,24 @@ def main():
                 ax.axis("off")
                 st.pyplot(fig)
                 
+                # Get top words for insight
+                top_keywords = stats_agent.get_top_keywords_in_titles(n=5)
+                top_words = ", ".join([f"**{word}**" for word in top_keywords['word'].tolist()])
+                
+                st.markdown(f"""
+                **Interpretation:** This word cloud visualizes the most frequent words in post titles, with larger words appearing more frequently.
+                The dominant terms ({top_words}) highlight the main topics of discussion in this dataset.
+                This provides a quick visual summary of what content is most discussed across the analyzed posts.
+                """)
+                
                 # Top keywords
                 st.subheader("Top Keywords in Titles")
                 keywords = stats_agent.get_top_keywords_in_titles(n=20)
+                top_word = keywords.iloc[0]['word']
+                top_count = keywords.iloc[0]['count']
+                total_words = keywords['count'].sum()
+                top_percent = (top_count / total_words) * 100
+                
                 fig = px.bar(
                     keywords,
                     x="count",
@@ -397,6 +492,15 @@ def main():
                 )
                 fig.update_layout(coloraxis_showscale=False)
                 st.plotly_chart(fig, use_container_width=True)
+                
+                # Add dynamic explanation for keywords
+                word_diversity = "diverse vocabulary with no single dominant term" if top_percent < 10 else "several recurring themes" if top_percent < 20 else "conversation dominated by a few key terms"
+                
+                st.markdown(f"""
+                **Interpretation:** This chart ranks the most common words in post titles. 
+                The word "**{top_word}**" appears **{top_count} times** ({top_percent:.1f}% of all key terms).
+                The distribution shows a {word_diversity}, indicating {'a wide range of topics being discussed' if top_percent < 10 else 'focused discussion on specific themes' if top_percent < 20 else 'concentrated attention on particular subjects'}.
+                """)
                 
                 # Keyword search
                 st.subheader("Keyword Search")
@@ -427,72 +531,37 @@ def main():
             with tab4:
                 st.header("Advanced Topic Analysis")
                 
-                # BERTopic option
-                st.subheader("BERTopic Model")
-                use_bert = st.checkbox("Use BERTopic (advanced but slower)", value=False)
+                # Generate topics for AI summary
+                advanced_agent = AdvancedAnalysisAgent(df)
+                topic_data = advanced_agent._generate_simple_topics(n_topics=5)
                 
-                if use_bert:
-                    st.info("BERTopic uses advanced NLP for more accurate topics but is slower to process.")
-                    n_bert_topics = st.slider("Number of BERTopic Topics", min_value=2, max_value=config.MAX_TOPICS, value=config.DEFAULT_TOPICS, key="bert_slider")
-                    
-                    with st.spinner("Generating BERTopic model..."):
-                        topic_data = advanced_agent.generate_bert_topics(n_topics=n_bert_topics)
-                        
-                        # Check if we have an error and need to use fallback
-                        if "error" in topic_data and "fallback" in topic_data:
-                            st.warning(f"BERTopic error: {topic_data['error']}. Using fallback method.")
-                            topic_data = topic_data["fallback"]
-                        elif "error" in topic_data:
-                            st.error(topic_data["error"])
-                            topic_data = {"topic_terms": {}, "topic_docs": {}}
-                    
-                    # Display topics
-                    topic_terms = topic_data.get("topic_terms", {})
-                    topic_docs = topic_data.get("topic_docs", {})
-                    
-                    if not topic_terms:
-                        st.warning("No topics were found in the data.")
-                    else:
-                        # Create a word cloud of the top topics combined
-                        st.subheader("Topic Word Cloud")
-                        all_topic_words = []
-                        for words in topic_terms.values():
-                            all_topic_words.extend(words[:5])  # Top 5 words from each topic
-                        
-                        if all_topic_words:
-                            # Count word frequencies
-                            word_freqs = {}
-                            for word in all_topic_words:
-                                if word in word_freqs:
-                                    word_freqs[word] += 1
-                                else:
-                                    word_freqs[word] = 1
-                            
-                            wordcloud = WordCloud(
-                                width=800, height=400,
-                                background_color='white',
-                                colormap='viridis',
-                                max_words=100
-                            ).generate_from_frequencies(word_freqs)
-                            
-                            fig, ax = plt.subplots(figsize=(10, 6))
-                            ax.imshow(wordcloud, interpolation='bilinear')
-                            ax.axis("off")
-                            st.pyplot(fig)
-                        
-                        # Topic listing
-                        st.subheader("Discovered Topics")
-                        
-                        for topic_id, words in topic_terms.items():
-                            docs = topic_docs.get(topic_id, [])
-                            
-                            with st.expander(f"Topic {topic_id+1}: {', '.join(words[:3])}"):
-                                st.markdown(f"**Keywords**: {', '.join(words)}")
-                                st.markdown("**Example posts:**")
-                                for doc in docs[:3]:
-                                    st.markdown(f"- {doc}")
-                else:
-                    st.info("Enable BERTopic above for advanced topic modeling, or use the basic topic modeling in the Text Analysis tab.")
+                # Select a subreddit for focused analysis
+                subreddits = ["All Subreddits"] + list(df['subreddit'].value_counts().head(10).index)
+                selected_subreddit = st.selectbox(
+                    "Select a subreddit for focused analysis:",
+                    subreddits,
+                    index=0,
+                    key="advanced_topic_subreddit_selector"  # FIXED: Unique key for tab4
+                )
+                
+                subreddit = None if selected_subreddit == "All Subreddits" else selected_subreddit
+                
+                # Get topics for the selected subreddit if specified
+                if subreddit:
+                    subreddit_df = df[df['subreddit'] == subreddit]
+                    if len(subreddit_df) >= 20:  # Ensure we have enough data
+                        subreddit_agent = AdvancedAnalysisAgent(subreddit_df)
+                        topic_data = subreddit_agent._generate_simple_topics(n_topics=3)
+                
+                # Generate the topic summary
+                with st.spinner("Generating topic insights..."):
+                    summary = gemini_agent.generate_topic_summary(topic_data, subreddit)
+                    st.markdown(f"""
+                    <div style="background-color: #f1f8ff; border-left: 4px solid #1e88e5; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
+                        <h4 style="color: #1e88e5; margin-top: 0; margin-bottom: 0.75rem; font-weight: 600;">🤖 AI Time Series Analysis</h4>
+                        <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 0; font-family: 'Segoe UI', system-ui, sans-serif;">{summary}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 # Trend detection section
                 st.subheader("Keyword Trend Detection")
@@ -662,9 +731,7 @@ def main():
             with tab6:
                 st.header("AI-Generated Insights")
                 
-                # Initialize the summary agent with Gemini API
-                gemini_agent = GeminiSummaryAgent()
-                
+                # We already initialized the gemini_agent above, so just check if it's working
                 if gemini_agent.has_valid_key:
                     st.success("✅ Connected to Google Gemini API")
                 else:
@@ -712,7 +779,7 @@ def main():
                         "Select a subreddit for focused analysis:",
                         subreddits,
                         index=0,
-                        key="time_series_subreddit_selector"  # Unique key for time series tab
+                        key="time_series_subreddit_selector"  # This key is already unique
                     )
                     
                     subreddit = None if selected_subreddit == "All Subreddits" else selected_subreddit
@@ -737,7 +804,7 @@ def main():
                 with ai_tab2:
                     # Generate topics for AI summary
                     advanced_agent = AdvancedAnalysisAgent(df)
-                    topic_data = advanced_agent._generate_simple_topics(n_topics=5)
+                    topic_data = advanced_agent.generate_topics(n_topics=5)
                     
                     # Select a subreddit for focused analysis
                     subreddits = ["All Subreddits"] + list(df['subreddit'].value_counts().head(10).index)
@@ -745,7 +812,7 @@ def main():
                         "Select a subreddit for focused analysis:",
                         subreddits,
                         index=0,
-                        key="topic_insights_subreddit_selector"  # Updated unique key
+                        key="ai_topic_insights_subreddit_selector"  # FIXED: Unique key for ai_tab2
                     )
                     
                     subreddit = None if selected_subreddit == "All Subreddits" else selected_subreddit
@@ -755,7 +822,7 @@ def main():
                         subreddit_df = df[df['subreddit'] == subreddit]
                         if len(subreddit_df) >= 20:  # Ensure we have enough data
                             subreddit_agent = AdvancedAnalysisAgent(subreddit_df)
-                            topic_data = subreddit_agent._generate_simple_topics(n_topics=3)
+                            topic_data = subreddit_agent.generate_topics(n_topics=3)
                     
                     # Generate the topic summary
                     with st.spinner("Generating topic insights..."):
@@ -777,7 +844,7 @@ def main():
                         "Select a subreddit for focused analysis:",
                         subreddits,
                         index=0,
-                        key="credibility_subreddit_selector"  # Updated unique key
+                        key="credibility_subreddit_selector"  # This key is already unique
                     )
                     
                     subreddit = None if selected_subreddit == "All Subreddits" else selected_subreddit
