@@ -27,7 +27,7 @@ A comprehensive Streamlit dashboard for analyzing Reddit data with advanced anal
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/reddit-analysis-dashboard.git
+git clone https://github.com/HarshXAI/reddit-analysis-dashboard.git
 cd reddit-analysis-dashboard
 ```
 
