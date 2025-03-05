@@ -2,7 +2,10 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from visualization_helpers import render_custom_insight_box
+import nltk
 
+nltk.download('punkt')
+nltk.download('stopwords') 
 def render(df, advanced_agent, gemini_agent):
     st.header("Advanced Topic Analysis")
     
