@@ -8,7 +8,6 @@ wordcloud>=1.8.1
 nltk>=3.6.0
 
 # NLP and topic modeling
-bertopic>=0.15.0
 scikit-learn>=1.0.0
 umap-learn>=0.5.3
 hdbscan>=0.8.29

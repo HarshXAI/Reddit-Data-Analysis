@@ -1,129 +1,116 @@
-# Reddit Data Analysis Dashboard
+# SimPPL - Social Insights & Media Post Pattern Library
 
-A comprehensive Streamlit dashboard for analyzing Reddit data with advanced analytics, AI-powered insights, and interactive visualizations.
+## 📝 Description
+SimPPL is a powerful Streamlit-based analytics dashboard for analyzing Reddit posts and extracting meaningful insights. This tool helps you understand posting patterns, content credibility, and topic trends across different subreddits.
 
-## 🚀 Features
+## 🔗 Project Resources
+- [View Demo Video](https://drive.google.com/file/d/1pl_s2kArg87zchSNf3Aex0XVxOK7GxQ0/view?usp=sharing)
+- [Live Demo](https://harshxai-reddit-data-analysis-app-1cseoy.streamlit.app)
 
-- **📊 Interactive Data Analysis**
-  - Real-time data processing and visualization
-  - Time series analysis with customizable aggregation
-  - Advanced topic modeling with BERTopic
-  - Network analysis of author-subreddit relationships
-  - Credibility scoring and misinformation detection
+## ✨ Features
+- 📊 Interactive data visualization
+- ⏱️ Time series analysis of posting patterns
+- 🔍 Advanced topic modeling
+- 🛡️ Content credibility scoring
+- 🤖 AI-powered insights using Google's Gemini
+- 📱 Responsive design for all devices
 
-- **🤖 AI-Powered Insights**
-  - Google Gemini API integration for intelligent summaries
-  - Automated trend detection and analysis
-  - Topic modeling with advanced NLP
-  - Credibility assessment with machine learning
+## 🚀 Quick Start
 
-- **📈 Visualization Components**
-  - Interactive time series plots
-  - Dynamic network graphs
-  - Word clouds and topic visualization
-  - Credibility score distribution
-
-## 🛠️ Installation
-
-1. Clone the repository:
+### Prerequisites
 ```bash
-git clone https://github.com/HarshXAI/reddit-analysis-dashboard.git
-cd reddit-analysis-dashboard
+Python 3.9+
+pip (Python package manager)
+Virtual environment (recommended)
 ```
 
-2. Create and activate a virtual environment:
+### Installation
+1. Clone the repository:
+```bash
+git clone https://github.com/HarshXAI/AI-powered-Phishing-Detection-System.git
+cd SimPPL
+```
+
+2. Create and activate virtual environment:
 ```bash
 python -m venv simppl
 source simppl/bin/activate  # On Windows: simppl\Scripts\activate
 ```
 
-3. Install required packages:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
 4. Set up environment variables:
 ```bash
-cp .env.example .env
-# Edit .env and add your Google Gemini API key
+cp .env
+# Edit .env file with your API keys
 ```
 
-## 🚀 Usage
+### 🎯 Usage
 
-1. Start the Streamlit app:
+1. Start the application locally:
 ```bash
 streamlit run app.py
 ```
 
-2. Upload your Reddit data in JSONL format or use the demo data
-3. Navigate through different analysis tabs
-4. Generate AI-powered insights using the Gemini API
+2. Access the application:
+   - Local: `http://localhost:8501`
+   - Deployed version: [https://harshxai-reddit-data-analysis-app-1cseoy.streamlit.app](https://harshxai-reddit-data-analysis-app-1cseoy.streamlit.app)
 
-## 📁 Project Structure
+3. Upload your JSONL data file or use the demo data option
 
-```
-/SimPPL project/
-├── app.py              # Main Streamlit application
-├── config.py           # Configuration settings
-├── data/              # Data directory for demo files
-├── modules/           # Core functionality modules
-│   ├── __init__.py
-│   ├── data_ingestion.py
-│   ├── stats_analysis.py
-│   ├── topic_modeling.py
-│   ├── advanced_analysis.py
-│   ├── ai_summary.py
-│   └── summary_agent.py
-├── requirements.txt    # Project dependencies
-└── .env               # Environment variables (create from .env.example)
-```
 
-## 🔧 Configuration
+## 🛠️ Configuration
+Key configuration options in `config.py`:
+- `MAX_TOPICS`: Maximum number of topics for analysis
+- `DEFAULT_TOPICS`: Default number of topics to display
+- `APP_TITLE`: Application title
+- `APP_DESCRIPTION`: Application description
 
-- Set `GEMINI_API_KEY` in `.env` for AI features
-- Adjust analysis parameters in `config.py`
-- Customize visualization settings in the UI
+## 📈 Features in Detail
+
+### Time Series Analysis
+- Daily/Weekly/Monthly post frequency
+- Peak activity detection
+- Trend analysis
+- Day-of-week patterns
+
+### Text Analysis
+- Word clouds
+- Keyword frequency
+- Topic modeling
+- Content search
+
+### Credibility Analysis
+- Content credibility scoring
+- Source verification
+- Engagement patterns
+- Misinformation detection
+
+### AI Insights
+- Pattern recognition
+- Trend prediction
+- Content summarization
+- Anomaly detection
 
 ## 🤝 Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+## 📝 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📄 License
+## 🙋‍♂️ Support
+For support:
+- Create an issue in the repository
+- Contact: YOUR_EMAIL_HERE
+- Project Link: YOUR_PROJECT_LINK_HERE
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 🌟 Acknowledgments
+- [Streamlit](https://streamlit.io/)
+- [Google Gemini](https://deepmind.google/technologies/gemini/)
+- Other libraries and contributors
 
-## 🙏 Acknowledgments
-
-- Google Gemini API for AI capabilities
-- Streamlit for the web interface
-- BERTopic for advanced topic modeling
-- NetworkX for graph analysis
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **Gemini API Connection**
-   - Verify your API key in `.env`
-   - Check for model availability
-   - Run diagnostics from the AI Insights tab
-
-2. **Data Loading**
-   - Ensure JSONL format is correct
-   - Check file permissions
-   - Use demo data to verify functionality
-
-3. **Topic Modeling**
-   - BERTopic requires sufficient RAM
-   - Falls back to simpler LDA if needed
-   - Adjust topic numbers for better results
-
-### Performance Tips
-
-- Use appropriate time aggregation for large datasets
-- Enable caching for repeated analyses
-- Adjust chunk size for large file processing
+---
+Made with ❤️ by Harsh Kanani
