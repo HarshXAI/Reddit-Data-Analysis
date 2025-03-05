@@ -32,53 +32,6 @@ try:
 except LookupError:
     nltk.download('stopwords', quiet=True)
 
-# Monkey patch for NLTK punkt.py to fix the punkt_tab reference
-def _patch_nltk_punkt():
-    """
-    Apply a monkey patch to NLTK's punkt module to prevent it from looking for punkt_tab.
-    """
-    try:
-        import nltk.tokenize.punkt
-        import types
-        
-        # Create a patched version of the load_lang method
-        def patched_load_lang(self, lang):
-            """
-            Patched version that uses punkt instead of punkt_tab
-            """
-            try:
-                # Try directly using word_tokenize instead of punkt_tab
-                from nltk.tokenize import word_tokenize
-                return
-            except Exception:
-                # If that fails, log it and try to proceed with default behavior
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning("Could not load punkt tokenizer directly, trying fallback")
-                
-                # Original method used punkt_tab, we'll modify it to use punkt
-                try:
-                    # Use punkt resource instead of punkt_tab
-                    from nltk.data import find
-                    lang_vars = find(f'tokenizers/punkt/{lang}.pickle')
-                    self._params = nltk.data.load(lang_vars)
-                except LookupError:
-                    # Final fallback - download punkt if needed
-                    nltk.download('punkt', quiet=True)
-                    self._params = nltk.data.load(f'tokenizers/punkt/{lang}.pickle')
-        
-        # Apply the monkey patch
-        nltk.tokenize.punkt.PunktSentenceTokenizer.load_lang = patched_load_lang
-        return True
-    except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Failed to apply NLTK punkt patch: {str(e)}")
-        return False
-
-# Apply the patch immediately
-_patch_applied = _patch_nltk_punkt()
-
 class AdvancedAnalysisAgent:
     def __init__(self, df: pd.DataFrame):
         
@@ -140,34 +93,61 @@ class AdvancedAnalysisAgent:
             return {"error": f"Topic modeling failed: {str(e)}"}
     
     def detect_trends(self, time_window: str = 'D', min_count: int = 5) -> Dict:
-
+        """
+        Detect trending keywords in posts over time.
+        Completely rewritten to avoid punkt_tab reference issues.
+        """
         if 'created_date' not in self.df.columns:
             return {"error": "Timestamp data not available for trend detection"}
         
         try:
-            # Use a simpler approach that doesn't rely on punkt_tab
-            from nltk.tokenize import word_tokenize
-            from nltk.corpus import stopwords
+            # Simple tokenizer function that doesn't rely on nltk's punkt implementation
+            def simple_tokenize(text):
+                # Convert to lowercase
+                text = text.lower()
+                # Replace punctuation with spaces
+                import re
+                text = re.sub(r'[^\w\s]', ' ', text)
+                # Split on whitespace
+                return text.split()
             
-            # Skip the problematic tokenizer loading
-            stop_words = set(stopwords.words('english'))
+            # Get stopwords safely
+            try:
+                from nltk.corpus import stopwords
+                stop_words = set(stopwords.words('english'))
+            except:
+                # Fallback to a basic stopwords list
+                stop_words = {'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 
+                              'you', 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 
+                              'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 
+                              'itself', 'they', 'them', 'their', 'theirs', 'themselves', 
+                              'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 
+                              'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 
+                              'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 
+                              'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 
+                              'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 
+                              'between', 'into', 'through', 'during', 'before', 'after', 
+                              'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 
+                              'off', 'over', 'under', 'again', 'further', 'then', 'once'}
+            
+            # Add Reddit-specific stopwords
+            reddit_stopwords = {'amp', 'x200b', 'https', 'http', 'www', 'com', 
+                             'reddit', 'like', 'just', 'post', 'get', 'would',
+                             'removed', 'deleted', 'submission', 'comment',
+                             'karma', 'upvote', 'downvote', 'edit', 'update'}
+            stop_words.update(reddit_stopwords)
             
             def extract_keywords(text):
-                # Use word_tokenize directly without loading punkt_tab
-                try:
-                    tokens = word_tokenize(text.lower())
-                except Exception:
-                    # If word_tokenize fails, fall back to simpler tokenization
-                    tokens = text.lower().split()
-                
+                tokens = simple_tokenize(text)
+                # Filter tokens
                 keywords = [word for word in tokens 
                           if len(word) > 3 
                           and word.isalpha()
                           and word not in stop_words]
                 return keywords
             
+            # Continue with trend detection using our safe tokenization approach
             self.df['keywords'] = self.df['title'].apply(extract_keywords)
-            
             self.df['period'] = self.df['created_date'].dt.to_period(time_window)
             
             keyword_trends = {}
@@ -179,6 +159,7 @@ class AdvancedAnalysisAgent:
                 keyword_counts = Counter(all_keywords)
                 keyword_trends[period] = keyword_counts
             
+            # ... rest of the existing trend detection code ...
             trending_words = []
             for i in range(1, len(periods)):
                 prev_period = periods[i-1]
