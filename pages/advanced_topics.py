@@ -3,9 +3,12 @@ import plotly.express as px
 import pandas as pd
 from visualization_helpers import render_custom_insight_box
 import nltk
+import nltk
 
 nltk.download('punkt')  # Ensure tokenizer is available
 nltk.download('stopwords')  # Ensure stopwords are available
+nltk.download('punkt')
+nltk.download('stopwords') 
 def render(df, advanced_agent, gemini_agent):
     st.header("Advanced Topic Analysis")
     
