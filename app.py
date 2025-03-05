@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import sys
 import config
 import data_processing
 from modules.stats_analysis import StatsAgent
@@ -7,10 +8,71 @@ from modules.summary_agent import SummaryAgent
 from modules.advanced_analysis import AdvancedAnalysisAgent
 from modules.topic_modeling import TopicModelAgent
 from modules.ai_summary import GeminiSummaryAgent
-from visualization_helpers import render_metric_card, render_insight_box
+import logging
+import time
+from typing import Tuple, Optional
+import pandas as pd
+import nltk
+from nltk_setup import setup_nltk
+import importlib.util
 
-from pages import overview, time_series, text_analysis, advanced_topics, credibility, ai_insights
+# Setup NLTK resources early
+setup_nltk()
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Ensure current directory is in path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+    logger.info(f"Added current directory to Python path: {current_dir}")
+
+# Import page modules with robust error handling
+def import_page_module(module_name):
+    """Import a page module with detailed error handling"""
+    try:
+        # First try the standard import
+        return importlib.import_module(f"pages.{module_name}")
+    except ImportError as e:
+        logger.error(f"Failed to import {module_name}: {str(e)}")
+        
+        # Try direct path import as fallback
+        try:
+            module_path = os.path.join(current_dir, "pages", f"{module_name}.py")
+            if not os.path.exists(module_path):
+                logger.error(f"Module file not found: {module_path}")
+                raise ImportError(f"Module file not found: {module_path}")
+                
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if spec is None:
+                logger.error(f"Failed to create spec for {module_path}")
+                raise ImportError(f"Failed to create spec for {module_path}")
+                
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        except Exception as e2:
+            logger.error(f"Failed to import {module_name} from path: {str(e2)}")
+            
+            # Create a stub module as last resort
+            class StubModule:
+                @staticmethod
+                def render(*args, **kwargs):
+                    st.error(f"Failed to load {module_name} module")
+                    st.warning(f"Error details: {str(e)}")
+            
+            logger.warning(f"Created stub module for {module_name}")
+            return StubModule()
+
+# Import all page modules
+page_modules = {}
+for module_name in ["overview", "time_series", "text_analysis", "advanced_topics", "credibility", "ai_insights"]:
+    page_modules[module_name] = import_page_module(module_name)
+    logger.info(f"Loaded module: {module_name}")
+
+# Page config
 st.set_page_config(
     page_title=config.APP_TITLE,
     page_icon=config.APP_ICON,
@@ -18,6 +80,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Hide the sidebar
 st.markdown("""
 <style>
     [data-testid="collapsedControl"] {display: none;}
@@ -62,23 +125,24 @@ def main():
                 "🤖 AI Insights"
             ])
             
+            # Use the modules from our page_modules dictionary
             with overview_tab:
-                overview.render(df, stats_agent, advanced_agent)
+                page_modules["overview"].render(df, stats_agent, advanced_agent)
                 
             with time_series_tab:
-                time_series.render(df, stats_agent)
+                page_modules["time_series"].render(df, stats_agent)
                 
             with text_analysis_tab:
-                text_analysis.render(df, stats_agent)
+                page_modules["text_analysis"].render(df, stats_agent)
                 
             with advanced_topics_tab:
-                advanced_topics.render(df, advanced_agent, gemini_agent)
+                page_modules["advanced_topics"].render(df, advanced_agent, gemini_agent)
                 
             with credibility_tab:
-                credibility.render(df, advanced_agent)
+                page_modules["credibility"].render(df, advanced_agent)
                 
             with ai_insights_tab:
-                ai_insights.render(df, stats_agent, advanced_agent, gemini_agent, summary_agent)
+                page_modules["ai_insights"].render(df, stats_agent, advanced_agent, gemini_agent, summary_agent)
     else:
         st.info("Please upload a JSONL file containing Reddit data to begin analysis.")
         st.markdown("""

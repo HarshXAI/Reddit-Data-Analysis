@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from wordcloud import WordCloud
 import nltk
+from nltk.tokenize import word_tokenize
 import requests
 from datetime import datetime, timedelta
 import re
@@ -25,6 +26,11 @@ try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
     nltk.download('punkt', quiet=True)
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords', quiet=True)
 
 class AdvancedAnalysisAgent:
     def __init__(self, df: pd.DataFrame):

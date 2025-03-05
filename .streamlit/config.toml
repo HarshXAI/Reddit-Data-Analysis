@@ -1,0 +1,3 @@
+[runner]
+# Run the setup_nltk script before starting the app
+postScriptGC = false
