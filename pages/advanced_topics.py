@@ -3,9 +3,17 @@ import plotly.express as px
 import pandas as pd
 from visualization_helpers import render_custom_insight_box
 import nltk
+import os
 
-nltk.download('punkt')
-nltk.download('stopwords') 
+NLTK_DATA_PATH = "/home/appuser/nltk_data"
+os.makedirs(NLTK_DATA_PATH, exist_ok=True)
+
+# Append the custom nltk data path
+nltk.data.path.append(NLTK_DATA_PATH)
+
+# Force download necessary resources
+nltk.download('punkt', download_dir=NLTK_DATA_PATH)
+nltk.download('stopwords', download_dir=NLTK_DATA_PATH)
 def render(df, advanced_agent, gemini_agent):
     st.header("Advanced Topic Analysis")
     
