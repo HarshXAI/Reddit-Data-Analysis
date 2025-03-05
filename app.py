@@ -2,24 +2,28 @@ import streamlit as st
 import os
 import sys
 import config
-import data_processing
 import logging
 import time
 import pandas as pd
-import nltk
-from nltk_setup import setup_nltk
-import importlib.util
 
 # Configure logging first
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Setup NLTK resources early, before any imports that might need them
+# Setup NLTK workarounds and resources early, before any imports that might need NLTK
+logger.info("Applying NLTK workarounds...")
+from nltk_workaround import apply_nltk_patches
+apply_nltk_patches()
+
 logger.info("Setting up NLTK resources...")
+from nltk_setup import setup_nltk
 setup_nltk()
 
 # Now import the modules that might need NLTK
+import nltk
+import importlib.util
+import data_processing
 from modules.stats_analysis import StatsAgent
 from modules.summary_agent import SummaryAgent
 from modules.advanced_analysis import AdvancedAnalysisAgent

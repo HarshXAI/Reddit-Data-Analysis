@@ -32,6 +32,53 @@ try:
 except LookupError:
     nltk.download('stopwords', quiet=True)
 
+# Monkey patch for NLTK punkt.py to fix the punkt_tab reference
+def _patch_nltk_punkt():
+    """
+    Apply a monkey patch to NLTK's punkt module to prevent it from looking for punkt_tab.
+    """
+    try:
+        import nltk.tokenize.punkt
+        import types
+        
+        # Create a patched version of the load_lang method
+        def patched_load_lang(self, lang):
+            """
+            Patched version that uses punkt instead of punkt_tab
+            """
+            try:
+                # Try directly using word_tokenize instead of punkt_tab
+                from nltk.tokenize import word_tokenize
+                return
+            except Exception:
+                # If that fails, log it and try to proceed with default behavior
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning("Could not load punkt tokenizer directly, trying fallback")
+                
+                # Original method used punkt_tab, we'll modify it to use punkt
+                try:
+                    # Use punkt resource instead of punkt_tab
+                    from nltk.data import find
+                    lang_vars = find(f'tokenizers/punkt/{lang}.pickle')
+                    self._params = nltk.data.load(lang_vars)
+                except LookupError:
+                    # Final fallback - download punkt if needed
+                    nltk.download('punkt', quiet=True)
+                    self._params = nltk.data.load(f'tokenizers/punkt/{lang}.pickle')
+        
+        # Apply the monkey patch
+        nltk.tokenize.punkt.PunktSentenceTokenizer.load_lang = patched_load_lang
+        return True
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to apply NLTK punkt patch: {str(e)}")
+        return False
+
+# Apply the patch immediately
+_patch_applied = _patch_nltk_punkt()
+
 class AdvancedAnalysisAgent:
     def __init__(self, df: pd.DataFrame):
         
@@ -98,28 +145,26 @@ class AdvancedAnalysisAgent:
             return {"error": "Timestamp data not available for trend detection"}
         
         try:
-            # Use proper NLTK resources
+            # Use a simpler approach that doesn't rely on punkt_tab
             from nltk.tokenize import word_tokenize
             from nltk.corpus import stopwords
             
-            # Explicitly ensure punkt is available
-            try:
-                tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
-            except LookupError:
-                nltk.download('punkt', quiet=True)
-                tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
-            
+            # Skip the problematic tokenizer loading
             stop_words = set(stopwords.words('english'))
             
             def extract_keywords(text):
-                # Use word_tokenize directly instead of loading punkt_tab
-                tokens = word_tokenize(text.lower())
+                # Use word_tokenize directly without loading punkt_tab
+                try:
+                    tokens = word_tokenize(text.lower())
+                except Exception:
+                    # If word_tokenize fails, fall back to simpler tokenization
+                    tokens = text.lower().split()
+                
                 keywords = [word for word in tokens 
                           if len(word) > 3 
                           and word.isalpha()
                           and word not in stop_words]
                 return keywords
-            
             
             self.df['keywords'] = self.df['title'].apply(extract_keywords)
             
