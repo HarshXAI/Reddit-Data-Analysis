@@ -98,15 +98,22 @@ class AdvancedAnalysisAgent:
             return {"error": "Timestamp data not available for trend detection"}
         
         try:
-            # Extract and tokenize important words from titles
+            # Use proper NLTK resources
             from nltk.tokenize import word_tokenize
             from nltk.corpus import stopwords
+            
+            # Explicitly ensure punkt is available
+            try:
+                tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+            except LookupError:
+                nltk.download('punkt', quiet=True)
+                tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+            
             stop_words = set(stopwords.words('english'))
             
             def extract_keywords(text):
-               
+                # Use word_tokenize directly instead of loading punkt_tab
                 tokens = word_tokenize(text.lower())
-               
                 keywords = [word for word in tokens 
                           if len(word) > 3 
                           and word.isalpha()
@@ -186,7 +193,11 @@ class AdvancedAnalysisAgent:
             }
             
         except Exception as e:
-            return {"error": f"Error in trend detection: {str(e)}"}
+            # Add detailed error reporting
+            import traceback
+            error_details = traceback.format_exc()
+            logger.error(f"Trend detection error: {error_details}")
+            return {"error": f"Error detecting trends: {str(e)}"}
     
     def score_credibility(self) -> pd.DataFrame:
 

@@ -3,25 +3,28 @@ import os
 import sys
 import config
 import data_processing
-from modules.stats_analysis import StatsAgent
-from modules.summary_agent import SummaryAgent
-from modules.advanced_analysis import AdvancedAnalysisAgent
-from modules.topic_modeling import TopicModelAgent
-from modules.ai_summary import GeminiSummaryAgent
 import logging
 import time
-from typing import Tuple, Optional
 import pandas as pd
 import nltk
 from nltk_setup import setup_nltk
 import importlib.util
 
-# Setup NLTK resources early
+# Configure logging first
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Setup NLTK resources early, before any imports that might need them
+logger.info("Setting up NLTK resources...")
 setup_nltk()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Now import the modules that might need NLTK
+from modules.stats_analysis import StatsAgent
+from modules.summary_agent import SummaryAgent
+from modules.advanced_analysis import AdvancedAnalysisAgent
+from modules.topic_modeling import TopicModelAgent
+from modules.ai_summary import GeminiSummaryAgent
 
 # Ensure current directory is in path
 current_dir = os.path.dirname(os.path.abspath(__file__))
