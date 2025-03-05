@@ -4,24 +4,18 @@ from modules.stats_analysis import StatsAgent
 from visualization_helpers import render_custom_insight_box
 
 def render_ai_summary_box(title, summary):
-    """Render an AI summary with a title."""
     st.markdown(f"**🤖 {title}**")
     st.markdown(summary)
 
 def render(df, stats_agent, advanced_agent, gemini_agent, summary_agent):
-    """Render the AI Insights tab content"""
     st.header("AI-Generated Insights")
     
-    # Check if Gemini API is working
     if gemini_agent.has_valid_key:
         st.success("✅ Connected to Google Gemini API")
     else:
         st.warning("""
         ⚠️ No valid Gemini API key found. Add your API key to the .env file:
         ```
-        GEMINI_API_KEY=your_key_here
-        ```
-        Using mock summaries for demonstration.
         """)
         
         # Add diagnostics option when API connection fails
@@ -50,10 +44,8 @@ def render(df, stats_agent, advanced_agent, gemini_agent, summary_agent):
     ])
     
     with ai_tab1:
-        # Get time series data for AI analysis
         time_data = stats_agent.get_posts_over_time()['day']
         
-        # Select a subreddit for focused analysis
         subreddits = ["All Subreddits"] + list(df['subreddit'].value_counts().head(10).index)
         selected_subreddit = st.selectbox(
             "Select a subreddit for focused analysis:",
@@ -64,23 +56,19 @@ def render(df, stats_agent, advanced_agent, gemini_agent, summary_agent):
         
         subreddit = None if selected_subreddit == "All Subreddits" else selected_subreddit
         
-        # Get time series for the selected subreddit
         if subreddit:
             subreddit_df = df[df['subreddit'] == subreddit]
             if len(subreddit_df) > 0:
                 subreddit_stats = StatsAgent(subreddit_df)
                 time_data = subreddit_stats.get_posts_over_time()['day']
         
-        # Generate the AI summary
         with st.spinner("Generating AI summary..."):
             summary = gemini_agent.generate_time_series_summary(time_data, subreddit)
             render_custom_insight_box(summary, title="AI Time Series Analysis", icon="🤖")
     
     with ai_tab2:
-        # Generate topics for AI summary
         topic_data = advanced_agent.generate_topics(n_topics=5)
         
-        # Select a subreddit for focused analysis
         subreddits = ["All Subreddits"] + list(df['subreddit'].value_counts().head(10).index)
         selected_subreddit = st.selectbox(
             "Select a subreddit for focused analysis:",
@@ -91,23 +79,19 @@ def render(df, stats_agent, advanced_agent, gemini_agent, summary_agent):
         
         subreddit = None if selected_subreddit == "All Subreddits" else selected_subreddit
         
-        # Get topics for the selected subreddit if specified
         if subreddit:
             subreddit_df = df[df['subreddit'] == subreddit]
             if len(subreddit_df) >= 20:  # Ensure we have enough data
                 subreddit_agent = advanced_agent.__class__(subreddit_df)
                 topic_data = subreddit_agent.generate_topics(n_topics=3)
         
-        # Generate the topic summary
         with st.spinner("Generating topic insights..."):
             summary = gemini_agent.generate_topic_summary(topic_data, subreddit)
             render_custom_insight_box(summary, title="AI Topic Analysis", icon="🤖")
     
     with ai_tab3:
-        # Get credibility scores for AI analysis
         credibility_df = advanced_agent.score_credibility()
         
-        # Select a subreddit for focused analysis
         subreddits = ["All Subreddits"] + list(df['subreddit'].value_counts().head(10).index)
         selected_subreddit = st.selectbox(
             "Select a subreddit for focused analysis:",
@@ -118,13 +102,11 @@ def render(df, stats_agent, advanced_agent, gemini_agent, summary_agent):
         
         subreddit = None if selected_subreddit == "All Subreddits" else selected_subreddit
         
-        # Filter credibility data by subreddit if specified
         if subreddit:
             filtered_cred_df = credibility_df[credibility_df['subreddit'] == subreddit]
         else:
             filtered_cred_df = credibility_df
         
-        # Generate the credibility summary
         with st.spinner("Generating credibility insights..."):
             summary = gemini_agent.generate_misinformation_summary(filtered_cred_df)
             render_custom_insight_box(summary, title="AI Credibility Analysis", icon="🤖")

@@ -4,13 +4,10 @@ import pandas as pd
 from visualization_helpers import render_insight_box, generate_time_series_insight
 
 def render(df, stats_agent):
-    """Render the Time Series Analysis tab content"""
     st.header("Time Series Analysis")
     
-    # Posts over time
     posts_over_time = stats_agent.get_posts_over_time()
     
-    # Time aggregation selector
     time_agg = st.selectbox(
         "Time Aggregation",
         ["Day", "Week", "Month"],
@@ -23,8 +20,7 @@ def render(df, stats_agent):
         time_data = posts_over_time['week']
     else:
         time_data = posts_over_time['month']
-    
-    # Show peak statistics if we have data
+
     if not time_data.empty:
         max_date = time_data.loc[time_data['count'].idxmax(), 'date']
         max_count = time_data['count'].max()
@@ -34,8 +30,7 @@ def render(df, stats_agent):
             f"{max_count} posts", 
             f"on {max_date.strftime('%Y-%m-%d') if isinstance(max_date, pd.Timestamp) else max_date}"
         )
-    
-    # Line chart with improved styling
+
     fig = px.line(
         time_data,
         x="date",
@@ -52,11 +47,9 @@ def render(df, stats_agent):
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    # Add dynamic explanation for time series
     insight_text, _ = generate_time_series_insight(time_data, time_agg)
     render_insight_box(insight_text)
     
-    # Posts by day of week and hour
     col1, col2 = st.columns(2)
     
     with col1:
@@ -77,7 +70,6 @@ def render(df, stats_agent):
         fig.update_layout(coloraxis_showscale=False)
         st.plotly_chart(fig, use_container_width=True)
         
-        # Add dynamic explanation for day of week
         weekday_weekend_pattern = "higher on weekdays than weekends" if dow_data.loc[dow_data['day_name'].isin(['Saturday', 'Sunday']), 'count'].mean() < dow_data.loc[~dow_data['day_name'].isin(['Saturday', 'Sunday']), 'count'].mean() else "higher on weekends than weekdays"
         
         insight_text = f"""
@@ -107,12 +99,9 @@ def render(df, stats_agent):
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Add dynamic explanation for hour of day
-        # Convert to 12-hour format for readability
         peak_hour_12h = f"{peak_hour if peak_hour <= 12 else peak_hour - 12} {'AM' if peak_hour < 12 or peak_hour == 24 else 'PM'}"
         quiet_hour_12h = f"{quiet_hour if quiet_hour <= 12 else quiet_hour - 12} {'AM' if quiet_hour < 12 or quiet_hour == 24 else 'PM'}"
         
-        # Determine if there are morning and evening peaks
         morning_peak = hour_data[(hour_data['hour'] >= 6) & (hour_data['hour'] < 12)]['count'].max()
         evening_peak = hour_data[(hour_data['hour'] >= 17) & (hour_data['hour'] < 23)]['count'].max()
         peak_pattern = "both morning and evening peaks" if morning_peak > 0.7 * evening_peak and evening_peak > 0.7 * morning_peak else "primarily evening activity" if evening_peak > morning_peak else "primarily morning activity"
@@ -123,8 +112,6 @@ def render(df, stats_agent):
         The pattern shows {peak_pattern}, suggesting {'users engage both before and after work hours' if peak_pattern == 'both morning and evening peaks' else 'users are most active during evening leisure hours' if peak_pattern == 'primarily evening activity' else 'users tend to post early in the day'}.
         """
         render_insight_box(insight_text)
-    
-    # Remove custom styling from the page
     st.markdown("""
     <style>
     /* Reset any custom styling that might affect text color */

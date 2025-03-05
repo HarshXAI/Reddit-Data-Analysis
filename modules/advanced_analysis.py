@@ -5,7 +5,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
 import networkx as nx
-from bertopic import BERTopic
 import plotly.express as px
 import plotly.graph_objects as go
 from wordcloud import WordCloud
@@ -20,166 +19,38 @@ from typing import Dict, List, Tuple, Union, Optional
 from urllib.parse import urlparse
 from modules.credibility_analyzer import CredibilityAnalyzer
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
-# Download required NLTK data
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
     nltk.download('punkt', quiet=True)
 
 class AdvancedAnalysisAgent:
-    """Agent responsible for advanced AI/ML analysis on Reddit data."""
-    
     def __init__(self, df: pd.DataFrame):
-        """
-        Initialize the AdvancedAnalysisAgent with processed Reddit data.
         
-        Args:
-            df: DataFrame containing Reddit post data
-        """
         self.df = df
         self._prepare_text_data()
         self.credibility_analyzer = CredibilityAnalyzer()
         
     def _prepare_text_data(self) -> None:
-        """Prepare text data for advanced analysis."""
-        # Combine title and selftext if available for comprehensive text analysis
         if 'selftext' in self.df.columns:
             self.df['combined_text'] = self.df['title'] + ' ' + self.df['selftext'].fillna('')
         else:
             self.df['combined_text'] = self.df['title']
             
-        # Ensure text fields are strings
         self.df['combined_text'] = self.df['combined_text'].astype(str)
         self.df['title'] = self.df['title'].astype(str)
         
-        # Extract all URLs from text for misinformation analysis
         self.df['urls'] = self.df['combined_text'].apply(self._extract_urls)
     
     def _extract_urls(self, text: str) -> List[str]:
-        """Extract all URLs from text content."""
         url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
         return re.findall(url_pattern, text)
-    
-    def generate_bert_topics(self, n_topics: int = 10) -> Dict:
-        """
-        Generate topics using BERTopic.
-        
-        Args:
-            n_topics: Number of topics to generate
-            
-        Returns:
-            Dictionary containing topic model, topic info, topic terms, representative documents, and topic evolution visualization data.
-        """
-        if len(self.df) < 10:
-            return {"error": "Not enough data for topic modeling"}
-            
-        try:
-            # Import UMAP and BERTopic
-            from umap import UMAP
-            import bertopic
-            logger.info(f"Using BERTopic version: {bertopic.__version__}")
-            
-            # Create a UMAP model for dimensionality reduction
-            umap_model = UMAP(
-                n_components=5,
-                n_neighbors=15,
-                min_dist=0.1,
-                metric='cosine',
-                random_state=42
-            )
-            
-            # Initialize BERTopic model with the UMAP model
-            model = BERTopic(
-                umap_model=umap_model,
-                min_topic_size=5,
-                nr_topics=n_topics,
-                calculate_probabilities=False,
-                verbose=False
-            )
-            
-            # Ensure combined_text is a list of strings
-            texts = self.df['combined_text'].dropna().astype(str).tolist()
-            topics, probs = model.fit_transform(texts)
-            
-            # Get topic information
-            topic_info = model.get_topic_info()
-            
-            # Retrieve topics from the model as a dictionary
-            topics_dict = model.get_topics()
-            topic_terms = {}
-            for topic, words in topics_dict.items():
-                if topic != -1 and words is not None:
-                    # words is a list of tuples (word, score)
-                    topic_terms[topic] = [word for word, _ in words]
-            
-            # Get representative document titles for each topic
-            topic_docs = {}
-            for topic_id in topic_terms.keys():
-                indices = [i for i, t in enumerate(topics) if t == topic_id]
-                if indices:
-                    topic_docs[topic_id] = self.df.iloc[indices]['title'].head(3).tolist()
-                else:
-                    topic_docs[topic_id] = []
-            
-            # Assign topics to the DataFrame
-            self.df['topic_id'] = topics
-            
-            # Generate topic evolution visualization data if created_date is available
-            topic_evolution_df = pd.DataFrame()
-            if 'created_date' in self.df.columns:
-                self.df['date'] = self.df['created_date'].dt.date
-                topics_over_time = model.topics_over_time(
-                    texts,
-                    self.df['topic_id'].tolist(),
-                    self.df['created_date'].tolist()
-                )
-                
-                topic_evolution = []
-                for topic, _ in topics_dict.items():
-                    if topic != -1:
-                        topic_data = [d for d in topics_over_time if d[0] == topic]
-                        if topic_data:
-                            for entry in topic_data:
-                                topic_evolution.append({
-                                    'topic': f"Topic {topic}",
-                                    'date': entry[1],
-                                    'weight': entry[2]
-                                })
-                
-                topic_evolution_df = pd.DataFrame(topic_evolution)
-            
-            return {
-                "model": model,
-                "topic_info": topic_info,
-                "topic_terms": topic_terms,
-                "topic_docs": topic_docs,
-                "topic_evolution": topic_evolution_df
-            }
-            
-        except Exception as e:
-            logger.error(f"Error in BERTopic: {str(e)}")
-            logger.error(traceback.format_exc())
-            return {
-                "error": f"Error in topic modeling: {str(e)}",
-                "fallback": self._generate_simple_topics(n_topics)
-            }
-    
     def _generate_simple_topics(self, n_topics: int = 5) -> Dict:
-        """
-        Generate simple topics using TF-IDF as fallback method.
-        
-        Args:
-            n_topics: Number of topics to generate
-            
-        Returns:
-            Dictionary containing topics and terms
-        """
+
         from sklearn.decomposition import NMF
         
-        # Create TF-IDF matrix
         vectorizer = TfidfVectorizer(
             max_features=1000,
             stop_words='english',
@@ -191,21 +62,17 @@ class AdvancedAnalysisAgent:
             tfidf = vectorizer.fit_transform(self.df['combined_text'])
             feature_names = vectorizer.get_feature_names_out()
             
-            # Apply NMF for topic modeling
             nmf = NMF(n_components=n_topics, random_state=42)
             nmf_results = nmf.fit_transform(tfidf)
             
-            # Get top words for each topic
             topic_terms = {}
             for topic_idx, topic in enumerate(nmf.components_):
                 top_words_idx = topic.argsort()[:-11:-1]
                 top_words = [feature_names[i] for i in top_words_idx]
                 topic_terms[topic_idx] = top_words
             
-            # Assign topics to documents
             self.df['topic_id'] = nmf_results.argmax(axis=1)
             
-            # Get example docs for each topic
             topic_docs = {}
             for topic_id in range(n_topics):
                 docs = self.df[self.df['topic_id'] == topic_id]['title'].head(3).tolist()
@@ -220,16 +87,7 @@ class AdvancedAnalysisAgent:
             return {"error": f"Topic modeling failed: {str(e)}"}
     
     def detect_trends(self, time_window: str = 'D', min_count: int = 5) -> Dict:
-        """
-        Detect trending keywords over time.
-        
-        Args:
-            time_window: Time window for grouping ('D'=day, 'W'=week, 'M'=month)
-            min_count: Minimum count threshold for a keyword to be considered
-            
-        Returns:
-            Dictionary containing trending keywords and visualization data
-        """
+
         if 'created_date' not in self.df.columns:
             return {"error": "Timestamp data not available for trend detection"}
         
@@ -240,22 +98,20 @@ class AdvancedAnalysisAgent:
             stop_words = set(stopwords.words('english'))
             
             def extract_keywords(text):
-                """Extract keywords from text, excluding stopwords"""
+               
                 tokens = word_tokenize(text.lower())
-                # Filter out short words, non-alphabetic tokens, and stopwords
+               
                 keywords = [word for word in tokens 
                           if len(word) > 3 
                           and word.isalpha()
                           and word not in stop_words]
                 return keywords
             
-            # Apply keyword extraction to all titles
+            
             self.df['keywords'] = self.df['title'].apply(extract_keywords)
             
-            # Group by date period
             self.df['period'] = self.df['created_date'].dt.to_period(time_window)
             
-            # Count keywords by period
             keyword_trends = {}
             periods = sorted(self.df['period'].unique())
             
@@ -265,7 +121,6 @@ class AdvancedAnalysisAgent:
                 keyword_counts = Counter(all_keywords)
                 keyword_trends[period] = keyword_counts
             
-            # Find trending keywords (significant increase between periods)
             trending_words = []
             for i in range(1, len(periods)):
                 prev_period = periods[i-1]
@@ -296,7 +151,6 @@ class AdvancedAnalysisAgent:
             if not trending_df.empty:
                 trending_df = trending_df.sort_values('increase_ratio', ascending=False)
             
-            # Create time series data for visualization
             trend_viz_data = []
             top_keywords = set()
             if not trending_df.empty:
@@ -329,12 +183,7 @@ class AdvancedAnalysisAgent:
             return {"error": f"Error in trend detection: {str(e)}"}
     
     def score_credibility(self) -> pd.DataFrame:
-        """
-        Score the credibility of posts using the CredibilityAnalyzer.
-        
-        Returns:
-            DataFrame with original columns plus credibility scores and factors
-        """
+
         try:
             logger.info("Analyzing content credibility...")
             result_df = self.credibility_analyzer.batch_analyze_posts(self.df)
@@ -350,12 +199,7 @@ class AdvancedAnalysisAgent:
             })
     
     def generate_network_graph(self) -> Dict:
-        """
-        Generate network graph visualization for community analysis.
-        
-        Returns:
-            Dictionary containing network data and visualization
-        """
+
         try:
             if 'author' not in self.df.columns or 'subreddit' not in self.df.columns:
                 return {"error": "Author and subreddit data required for network analysis"}
@@ -444,15 +288,7 @@ class AdvancedAnalysisAgent:
             return {"error": f"Error in network graph generation: {str(e)}"}
     
     def generate_topics(self, n_topics: int = 10) -> Dict:
-        """
-        Generate topics using NMF (Non-negative Matrix Factorization).
-        
-        Args:
-            n_topics: Number of topics to generate
-            
-        Returns:
-            Dictionary containing topic info, topic terms, and representative documents.
-        """
+
         if len(self.df) < 10:
             return {"error": "Not enough data for topic modeling"}
             
@@ -470,27 +306,22 @@ class AdvancedAnalysisAgent:
             tfidf = vectorizer.fit_transform(self.df['combined_text'])
             feature_names = vectorizer.get_feature_names_out()
             
-            # Apply NMF for topic modeling
             nmf = NMF(n_components=n_topics, random_state=42)
             nmf_results = nmf.fit_transform(tfidf)
             
-            # Get top words for each topic
             topic_terms = {}
             for topic_idx, topic in enumerate(nmf.components_):
                 top_words_idx = topic.argsort()[:-11:-1]
                 top_words = [feature_names[i] for i in top_words_idx]
                 topic_terms[topic_idx] = top_words
             
-            # Assign topics to documents
             self.df['topic_id'] = nmf_results.argmax(axis=1)
             
-            # Get example docs for each topic
             topic_docs = {}
             for topic_id in range(n_topics):
                 docs = self.df[self.df['topic_id'] == topic_id]['title'].head(3).tolist()
                 topic_docs[topic_id] = docs
             
-            # Create topic evolution data if timestamps are available
             topic_evolution_df = pd.DataFrame()
             if 'created_date' in self.df.columns:
                 self.df['date'] = self.df['created_date'].dt.date

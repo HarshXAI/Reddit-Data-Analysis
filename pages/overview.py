@@ -5,10 +5,9 @@ import pandas as pd
 from visualization_helpers import render_insight_box, render_metric_card
 
 def render(df, stats_agent, advanced_agent):
-    """Render the Overview tab content"""
     st.header("Dataset Overview")
     
-    # Display general stats
+    
     col1, col2, col3 = st.columns(3)
     with col1:
         render_metric_card("Total Posts", f"{len(df):,}")
@@ -17,7 +16,7 @@ def render(df, stats_agent, advanced_agent):
     with col3:
         render_metric_card("Avg. Score", f"{stats_agent.get_average_score():.1f}")
     
-    # Top subreddits
+
     st.subheader("Top Subreddits")
     subreddit_counts = stats_agent.get_subreddit_distribution()
     top_subreddit = subreddit_counts.iloc[0]['subreddit']
@@ -47,7 +46,7 @@ def render(df, stats_agent, advanced_agent):
     """
     render_insight_box(insight_text)
     
-    # Score distribution
+    
     st.subheader("Score Distribution")
     avg_score = df['score'].mean()
     median_score = df['score'].median()
@@ -62,7 +61,7 @@ def render(df, stats_agent, advanced_agent):
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    # Add dynamic explanation for score distribution
+
     skew_description = "right-skewed (most posts have lower scores with a few highly upvoted outliers)" if avg_score < median_score else "relatively balanced"
     insight_text = f"""
     **Interpretation:** This histogram displays the distribution of post scores, which is {skew_description}. 
@@ -71,10 +70,9 @@ def render(df, stats_agent, advanced_agent):
     """
     render_insight_box(insight_text)
     
-    # Network graph section (in overview tab)
+    
     st.subheader("Community Network Analysis")
     
-    # Check if we should show the network graph
     show_network = st.checkbox("Show Author-Subreddit Network Graph", value=False)
     
     if show_network:
@@ -85,7 +83,6 @@ def render(df, stats_agent, advanced_agent):
                 st.warning(network_results["error"])
                 st.info("Network analysis requires data with author and subreddit information, with multiple posts by the same authors.")
             else:
-                # Get the network data
                 network_data = network_results["network_data"]
                 graph_stats = network_results["graph_stats"]
                 
@@ -97,10 +94,10 @@ def render(df, stats_agent, advanced_agent):
                 with col3:
                     st.metric("Connections", f"{graph_stats['num_edges']}")
                 
-                # Create network visualization
+                
                 fig = go.Figure()
                 
-                # Add edges
+                
                 fig.add_trace(go.Scatter(
                     x=network_data["edge_x"],
                     y=network_data["edge_y"],
@@ -109,7 +106,7 @@ def render(df, stats_agent, advanced_agent):
                     mode="lines"
                 ))
                 
-                # Add nodes
+                
                 fig.add_trace(go.Scatter(
                     x=network_data["node_x"],
                     y=network_data["node_y"],

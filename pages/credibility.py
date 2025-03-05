@@ -3,14 +3,12 @@ import plotly.express as px
 from visualization_helpers import render_metric_card
 
 def render_credibility_meter(score, factors):
-    """Render a credibility score meter."""
-    # Determine color based on score
     if score >= 70:
-        color = "#4caf50"  # Green for high credibility
+        color = "#4caf50"  
     elif score >= 40:
-        color = "#ff9800"  # Orange/Amber for medium credibility
+        color = "#ff9800"  
     else:
-        color = "#f44336"  # Red for low credibility
+        color = "#f44336" 
         
     st.markdown(f"""
     <div style="margin-bottom: 1rem;">
@@ -31,17 +29,14 @@ def render_credibility_meter(score, factors):
     """, unsafe_allow_html=True)
 
 def render(df, advanced_agent):
-    """Render the Credibility Analysis tab content"""
     st.header("Content Credibility Analysis")
     
     with st.spinner("Analyzing content credibility..."):
-        # Generate credibility scores
         credibility_df = advanced_agent.score_credibility()
         
         if 'error' in credibility_df.columns:
             st.error(f"Error in credibility analysis: {credibility_df['error'].iloc[0]}")
         else:
-            # Overall stats
             col1, col2, col3 = st.columns(3)
             
             avg_score = credibility_df['credibility_score'].mean()
@@ -72,7 +67,6 @@ def render(df, advanced_agent):
                 yaxis_title="Number of Posts",
                 xaxis=dict(range=[0, 100]),
             )
-            # Add vertical lines for low/medium/high credibility boundaries
             fig.add_shape(
                 type="line", line=dict(dash="dash", color="red"),
                 x0=40, x1=40, y0=0, y1=1, yref="paper"
@@ -81,14 +75,12 @@ def render(df, advanced_agent):
                 type="line", line=dict(dash="dash", color="green"),
                 x0=70, x1=70, y0=0, y1=1, yref="paper"
             )
-            # Add annotations
             fig.add_annotation(x=20, y=0.95, yref="paper", text="Low Credibility", showarrow=False)
             fig.add_annotation(x=55, y=0.95, yref="paper", text="Medium Credibility", showarrow=False)
             fig.add_annotation(x=85, y=0.95, yref="paper", text="High Credibility", showarrow=False)
             
             st.plotly_chart(fig, use_container_width=True)
             
-            # Posts with lowest credibility scores
             st.subheader("Posts with Low Credibility Scores")
             
             low_cred_posts = credibility_df.sort_values('credibility_score').head(5)
@@ -98,13 +90,10 @@ def render(df, advanced_agent):
                     st.markdown(f"**Subreddit**: r/{post['subreddit']}")
                     st.markdown(f"**Credibility Score**: {post['credibility_score']}/100")
                     
-                    # Render credibility meter
                     render_credibility_meter(
                         int(post['credibility_score']),
                         post['credibility_factors']
                     )
-            
-            # Explanation of the credibility scoring
             with st.expander("How credibility scores are calculated"):
                 st.markdown("""
                 ### Credibility Scoring Methodology

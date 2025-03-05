@@ -9,17 +9,10 @@ from typing import Dict, List, Any, Tuple, Set
 import logging
 import config
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 class CredibilityAnalyzer:
-    """
-    A comprehensive analyzer for evaluating content credibility.
-    This class provides methods to analyze and score various aspects of content 
-    that may indicate reliability or unreliability.
-    """
     
-    # Credibility indicators (positive)
     CREDIBILITY_MARKERS = {
         'evidence': [
             'according to', 'study finds', 'evidence shows', 'data indicates', 
@@ -37,7 +30,6 @@ class CredibilityAnalyzer:
         ]
     }
     
-    # Credibility detractors (negative)
     CREDIBILITY_DETRACTORS = {
         'conspiracy': [
             'conspiracy', 'coverup', 'cover-up', 'hoax', 'illuminati', 
@@ -60,8 +52,6 @@ class CredibilityAnalyzer:
     }
     
     def __init__(self):
-        """Initialize the credibility analyzer with required resources."""
-        # Initialize sentiment analyzer
         try:
             nltk.data.find('vader_lexicon')
         except LookupError:
@@ -72,38 +62,21 @@ class CredibilityAnalyzer:
         self.untrusted_domains = config.UNTRUSTED_DOMAINS
     
     def analyze_post(self, title: str, text: str, score: int = 0, author: str = '') -> Tuple[int, List[str]]:
-        """
-        Analyze a post for credibility indicators.
-        
-        Args:
-            title: Post title
-            text: Post text content
-            score: Post score (upvotes)
-            author: Post author
-            
-        Returns:
-            Tuple of (credibility_score, list_of_factors)
-        """
+
         factors = []
-        base_score = 50  # Start with neutral score
-        
-        # Clean and combine text
+        base_score = 50  
         title = str(title or '')
         text = str(text or '')
         combined_text = f"{title} {text}".lower()
         
-        # Apply scoring rules
         score_adjustments = []
         
-        # 1. Check for ALL CAPS (sensationalism)
         if re.search(r'[A-Z]{5,}', title):
             score_adjustments.append((-15, "Uses excessive capitalization"))
         
-        # 2. Check for excessive punctuation (sensationalism)
         if re.search(r'[!?]{2,}', title):
             score_adjustments.append((-10, "Uses excessive punctuation"))
         
-        # 3. Check for trusted domains in post
         trusted_domains_found = []
         for domain in self.trusted_domains:
             if domain in combined_text:
@@ -112,7 +85,6 @@ class CredibilityAnalyzer:
         if trusted_domains_found:
             score_adjustments.append((15, f"References trusted source(s): {', '.join(trusted_domains_found)}"))
         
-        # 4. Check for untrusted domains
         untrusted_domains_found = []
         for domain in self.untrusted_domains:
             if domain in combined_text:
@@ -121,40 +93,33 @@ class CredibilityAnalyzer:
         if untrusted_domains_found:
             score_adjustments.append((-20, f"References untrusted source(s): {', '.join(untrusted_domains_found)}"))
         
-        # 5. Check for extremeness in sentiment
         sentiment = self.sia.polarity_scores(combined_text)
         compound = sentiment['compound']
         
         if abs(compound) > 0.8:  # Very extreme sentiment
             score_adjustments.append((-10, "Contains extremely emotional language"))
         
-        # 6. Check text length - very short posts might be less credible
         if len(combined_text) < 20:
             score_adjustments.append((-5, "Very short content"))
         elif len(combined_text) > 500:
             score_adjustments.append((5, "Detailed explanation"))
         
-        # 7. Check for credibility markers
         for category, markers in self.CREDIBILITY_MARKERS.items():
             matching_markers = [marker for marker in markers if marker in combined_text]
             if matching_markers:
                 score_adjustments.append((10, f"Uses credible language: {category}"))
-                break  # Count only once per category
-        
-        # 8. Check for credibility detractors
+                break  
         for category, detractors in self.CREDIBILITY_DETRACTORS.items():
             matching_detractors = [detractor for detractor in detractors if detractor in combined_text]
             if matching_detractors:
                 score_adjustments.append((-15, f"Uses questionable language: {category}"))
                 break  # Count only once per category
-        
-        # 9. Bonus based on post score (if community has upvoted it)
+      
         if score > 100:
             score_adjustments.append((10, "Highly upvoted by community"))
         elif score < 0:
             score_adjustments.append((-5, "Downvoted by community"))
         
-        # 10. URL analysis
         urls = re.findall(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', combined_text)
         if urls:
             url_domains = [urlparse(url).netloc for url in urls]
@@ -165,55 +130,36 @@ class CredibilityAnalyzer:
                 score_adjustments.append((trusted_url_count * 5, f"Contains {trusted_url_count} link(s) to reputable sources"))
             if untrusted_url_count > 0:
                 score_adjustments.append((untrusted_url_count * -10, f"Contains {untrusted_url_count} link(s) to questionable sources"))
-        
-        # Apply a minor randomization to avoid identical scores (-3 to +3)
-        # This simulates other unmeasured factors and natural variation
+    
         random_factor = np.random.randint(-3, 4)
-        score_adjustments.append((random_factor, None))  # No factor text for randomization
-        
-        # Apply all adjustments to base score and collect factors
+        score_adjustments.append((random_factor, None)) 
         for adjustment, factor in score_adjustments:
             base_score += adjustment
             if factor:  # Don't add None factors (like randomization)
                 factors.append(factor)
         
-        # Ensure score stays within 0-100 range
         final_score = max(0, min(100, base_score))
         
         return final_score, factors
     
     def batch_analyze_posts(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Analyze multiple posts in a DataFrame.
-        
-        Args:
-            df: DataFrame with posts (should have title and selftext columns)
-        
-        Returns:
-            DataFrame with added credibility_score and credibility_factors columns
-        """
         logger.info(f"Batch analyzing {len(df)} posts for credibility")
         result_df = df.copy()
         
-        # Initialize output columns
         result_df['credibility_score'] = 0
         result_df['credibility_factors'] = ''
         
-        # Process each post
         for idx, row in result_df.iterrows():
             title = row.get('title', '')
             text = row.get('selftext', '')
             score = row.get('score', 0)
             author = row.get('author', '')
             
-            # Get credibility score and factors
             cred_score, cred_factors = self.analyze_post(title, text, score, author)
             
-            # Update DataFrame
             result_df.at[idx, 'credibility_score'] = cred_score
             result_df.at[idx, 'credibility_factors'] = ", ".join(cred_factors) if cred_factors else "No specific factors detected"
         
-        # Log distribution statistics
         score_stats = result_df['credibility_score'].describe()
         logger.info(f"Credibility score distribution: min={score_stats['min']:.1f}, max={score_stats['max']:.1f}, mean={score_stats['mean']:.1f}")
         

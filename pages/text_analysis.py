@@ -5,10 +5,8 @@ import pandas as pd
 from visualization_helpers import render_insight_box, generate_category_insight
 
 def render(df, stats_agent):
-    """Render the Text Analysis tab content"""
     st.header("Text Analysis")
-    
-    # Word cloud
+     
     st.subheader("Word Cloud of Post Titles")
     wordcloud = stats_agent.generate_title_wordcloud()
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -16,7 +14,6 @@ def render(df, stats_agent):
     ax.axis("off")
     st.pyplot(fig)
     
-    # Get top words for insight
     top_keywords = stats_agent.get_top_keywords_in_titles(n=5)
     top_words = ", ".join([f"**{word}**" for word in top_keywords['word'].tolist()])
     
@@ -27,7 +24,6 @@ def render(df, stats_agent):
     """
     render_insight_box(insight_text)
     
-    # Top keywords
     st.subheader("Top Keywords in Titles")
     keywords = stats_agent.get_top_keywords_in_titles(n=20)
     top_word = keywords.iloc[0]['word']
@@ -47,7 +43,6 @@ def render(df, stats_agent):
     fig.update_layout(coloraxis_showscale=False)
     st.plotly_chart(fig, use_container_width=True)
     
-    # Add dynamic explanation for keywords
     word_diversity = "diverse vocabulary with no single dominant term" if top_percent < 10 else "several recurring themes" if top_percent < 20 else "conversation dominated by a few key terms"
     
     insight_text = f"""
@@ -57,7 +52,6 @@ def render(df, stats_agent):
     """
     render_insight_box(insight_text)
     
-    # Keyword search
     st.subheader("Keyword Search")
     search_term = st.text_input("Enter keyword to search in posts:")
     if search_term:
@@ -65,7 +59,6 @@ def render(df, stats_agent):
         st.write(f"Found {len(filtered_posts)} posts containing '{search_term}'")
         st.dataframe(filtered_posts[['title', 'subreddit', 'score', 'created_date']])
     
-    # Topic modeling
     st.subheader("Basic Topic Modeling")
     
     import config
