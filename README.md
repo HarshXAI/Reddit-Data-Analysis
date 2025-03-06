@@ -101,11 +101,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📝 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙋‍♂️ Support
-For support:
-- Create an issue in the repository
-- Contact: YOUR_EMAIL_HERE
-- Project Link: YOUR_PROJECT_LINK_HERE
 
 ## 🌟 Acknowledgments
 - [Streamlit](https://streamlit.io/)
