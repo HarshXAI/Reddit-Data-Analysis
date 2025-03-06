@@ -27,7 +27,7 @@ Virtual environment (recommended)
 ### Installation
 1. Clone the repository:
 ```bash
-git clone https://github.com/HarshXAI/AI-powered-Phishing-Detection-System.git
+git clone https://github.com/HarshXAI/Reddit-Data-Analysis.git
 cd SimPPL
 ```
 
